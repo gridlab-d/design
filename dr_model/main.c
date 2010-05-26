@@ -16,14 +16,20 @@
 
 int main(int argc, char* argv[])
 {
-	double eta = 0.02;
-	double phi = 0.2;
+	double eta = 0.0;
+	double phi = 0.8;
 	int L = 10;
 	double Pm = 50;
 	int quiet = argc>1 && strcmp(argv[1],"-quiet");
 	DRMODEL *drm = drm_create(L,eta,phi);
 	int t, T = quiet?1000000:100;
 	time_t now = time(NULL), start=now;
+
+	if (drm==NULL)
+	{
+		printf("%s\n",drm_error());
+		return 1;
+	}
 
 	if (!quiet)
 	{

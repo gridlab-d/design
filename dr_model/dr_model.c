@@ -55,7 +55,8 @@ DRMODEL *drm_create(unsigned short L,
 {
 	DRMODEL *drm = NULL;
 	int x = 0;
-	double r = 0;
+	double ron = 1, roff = 1;
+	double non = 0, noff = 0;
 
 	/* check the input values */
 	if (eta<=-1 || eta>=1)
@@ -88,23 +89,37 @@ DRMODEL *drm_create(unsigned short L,
 	}
 
 	/* setup the initial population */
-	r = phi/(1-phi);
+	if (phi<0.5)
+		roff = phi/(1-phi);
+	else 
+		ron = (1-phi)/phi;
 	for (x=0; x<L; x++)
 	{
 		/* exponential distribution */
 		if (eta!=0)
 		{
-			drm->on[x] = eta * (1-phi) * exp(eta*(L-x+0.5)/r) / (exp(eta*L/r)-1);
-			drm->off[x] = drm->on[x]/r;
+			non += drm->on[x] = eta * (1-phi) * exp(eta*(L-x+0.5)/roff) / (exp(eta*L/roff)-1);
+			noff += drm->off[x] = drm->on[x]*ron/roff;
 		}
 
 		/* uniform distribution */
 		else
 		{
-			drm->on[x] = phi/L;
-			drm->off[x] = (1-phi)/L;
+			non += drm->on[x] = phi/L;
+			noff += drm->off[x] = (1-phi)/L;
 		}
 	}
+
+	/* check for valid population */
+	if ((float)(non+noff)!=(float)1.0)
+	{
+		errmsg = "drm_update(): initial population normalization error";
+		free(drm->off);
+		free(drm->on);
+		free(drm);
+		return NULL;
+	}
+
 
 	return drm;
 }
