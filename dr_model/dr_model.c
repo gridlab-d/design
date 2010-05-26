@@ -92,7 +92,7 @@ DRMODEL *drm_create(unsigned short L,
 	for (x=0; x<L; x++)
 	{
 		/* exponential distribution */
-		if (eta==0)
+		if (eta!=0)
 		{
 			drm->on[x] = eta * (1-phi) * exp(eta*(L-x+0.5)/r) / (exp(eta*L/r)-1);
 			drm->off[x] = drm->on[x]/r;
