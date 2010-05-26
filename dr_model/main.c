@@ -14,6 +14,10 @@
 #include <string.h>
 #include "dr_model.h"
 
+#ifdef LINUX
+#define _isnan isnan
+#endif
+
 int main(int argc, char* argv[])
 {
 	double eta = 0.0;

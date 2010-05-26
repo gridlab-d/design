@@ -436,3 +436,4 @@ double drm_forecast(DRMODEL *drm, double Px, double Ed, short delta, double eta,
 	free(test);
 	return Q;
 }
+
