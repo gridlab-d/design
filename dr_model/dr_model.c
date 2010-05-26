@@ -206,9 +206,9 @@ double drm_update(DRMODEL *drm,
 	const double QNAN = *(double*)nan;
 	double dnon[256], dnoff[256];
 	double non=0, noff=0;
+	double roff=1, ron=1;
 	int x;
 	const int L = drm->nbins;
-	double r;
 
 	/* check the input values */
 	if (delta!=0)
@@ -228,7 +228,10 @@ double drm_update(DRMODEL *drm,
 	}
 
 	/* compute state changes */
-	r = phi/(1-phi);
+	if (phi<0.5)
+		roff = phi/(1-phi);
+	else 
+		ron = (1-phi)/phi;
 	for (x=0; x<L; x++)
 	{
 		/* normal mode */
@@ -236,15 +239,15 @@ double drm_update(DRMODEL *drm,
 		{
 			/* on regime */
 			if (x==L-1) /* upper boundary */
-				dnon[x] = -drm->on[x] + (1-eta)*r*drm->off[x] + eta*drm->off[x];
+				dnon[x] = -ron*drm->on[x] + (1-eta)*roff*drm->off[x] + eta*drm->off[x];
 			else /* on queue */
-				dnon[x] = -drm->on[x] + eta*drm->off[x] + drm->on[x+1];
+				dnon[x] = -ron*drm->on[x] + eta*drm->off[x] + ron*drm->on[x+1];
 
 			/* off regime */
 			if (x==0) /* lower boundary */
-				dnoff[0] = -(1-eta)*r*drm->off[0] - eta*drm->off[0] + drm->on[0];
+				dnoff[0] = -(1-eta)*roff*drm->off[0] - eta*drm->off[0] + ron*drm->on[0];
 			else /* off queue */
-				dnoff[x] = -(1-eta)*r*drm->off[x] - eta*drm->off[x] + (1-eta)*r*drm->off[x-1];
+				dnoff[x] = -(1-eta)*roff*drm->off[x] - eta*drm->off[x] + (1-eta)*roff*drm->off[x-1];
 		}
 
 		/* curtailment mode */
@@ -252,15 +255,15 @@ double drm_update(DRMODEL *drm,
 		{
 			/* on regime */
 			if (x==L-1) /* upper boundary */
-				dnon[x] = -drm->on[x] + r*drm->off[x];
+				dnon[x] = -ron*(1+eta)*drm->on[x] + roff*drm->off[x] + eta*drm->on[x];
 			else /* on queue */
-				dnon[x] = -drm->on[x] + (1+eta)*drm->on[x+1];
+				dnon[x] = -ron*(1+eta)*drm->on[x] + (1+eta)*ron*drm->on[x+1] + eta*drm->on[x];
 
 			/* off regime */
 			if (x==0) /* lower boundary */
-				dnoff[0] = -r*drm->off[0] + drm->on[0];
+				dnoff[0] = -roff*drm->off[0] + ron*(1+eta)*drm->on[0] - eta*drm->on[0];
 			else /* off queue */
-				dnoff[x] = -r*drm->off[x] - eta*drm->on[x] + r*drm->off[x-1];
+				dnoff[x] = -roff*drm->off[x] - eta*drm->on[x] + roff*drm->off[x-1];
 		}
 
 		/* check for problem */
@@ -276,6 +279,13 @@ double drm_update(DRMODEL *drm,
 	{
 		non += drm->on[x] += dnon[x];
 		noff += drm->off[x] += dnoff[x];
+	}
+
+	/* check for collapse */
+	if ((float)(non+noff)!=(float)1.0)
+	{
+			errmsg = "drm_update(): model population collapsed";
+			return QNAN;
 	}
 
 	return non;
