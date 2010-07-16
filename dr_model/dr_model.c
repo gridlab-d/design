@@ -57,6 +57,8 @@ DRMODEL *drm_create(unsigned short L,
 	int x = 0;
 	double ron = 1, roff = 1;
 	double non = 0, noff = 0;
+	double dd, dl;
+	int limit=1000;
 
 	/* check the input values */
 	if (eta<=-1 || eta>=1)
@@ -98,8 +100,9 @@ DRMODEL *drm_create(unsigned short L,
 		/* exponential distribution */
 		if (eta!=0)
 		{
-			non += drm->on[x] = eta * (1-phi) * exp(eta*(L-x+0.5)/roff) / (exp(eta*L/roff)-1);
-			noff += drm->off[x] = drm->on[x]*ron/roff;
+			double rho = (1-eta)*roff + eta;
+			noff += drm->off[x] = eta * ron/(rho*(ron+rho)) * exp(eta*(L-x+0.5)/rho) / (exp(eta*L/rho)-1);
+			non += drm->on[x] = drm->off[x]*rho/ron;
 		}
 
 		/* uniform distribution */
@@ -120,6 +123,22 @@ DRMODEL *drm_create(unsigned short L,
 		return NULL;
 	}
 
+	/* run it to equilibrium */
+	dd = 1, dl = drm_update(drm,0,eta,phi);
+	while (fabs(dd)>1.0e-8)
+	{
+		double d = drm_update(drm,0,eta,phi);
+		dd = dl-d;
+		dl = d;
+		if (limit--<0)
+		{
+			errmsg = "drm_update(): initialization transient is undamped";
+			free(drm->off);
+			free(drm->on);
+			free(drm);
+			return NULL;
+		}
+	}
 
 	return drm;
 }
@@ -437,3 +456,15 @@ double drm_forecast(DRMODEL *drm, double Px, double Ed, short delta, double eta,
 	return Q;
 }
 
+/* Estimate the entropy of the system relative the maximum entropy
+
+*/
+double drm_entropy(DRMODEL *drm)
+{
+	double s0 = 1/(2.0 * drm->nbins);
+	double s = 0;
+	int n;
+	for (n=0; n<drm->nbins; n++)
+		s += drm->off[n] * log(drm->off[n]) + drm->on[n] * log(drm->on[n]);
+	return s0 - s;
+}

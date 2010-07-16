@@ -23,5 +23,6 @@ double drm_update(DRMODEL *drm, short delta, double eta, double phi);
 double drm_quantity(DRMODEL *drm);
 double drm_price(DRMODEL *drm, double Q, double phi, double Ed);
 double drm_forecast(DRMODEL *drm, double Px, double Ed, short delta, double eta, double phi);
+double drm_entropy(DRMODEL *drm);
 
 #endif

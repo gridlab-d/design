@@ -20,7 +20,7 @@
 
 int main(int argc, char* argv[])
 {
-	double eta = 0.0;
+	double eta = 0.05;
 	double phi = 0.8;
 	int L = 10;
 	double Pm = 50;
